@@ -32,6 +32,7 @@ INSTALLED_APPS = [
 
     # new app 
     'accounts',
+    'friendship',
 ]
 
 MIDDLEWARE = [

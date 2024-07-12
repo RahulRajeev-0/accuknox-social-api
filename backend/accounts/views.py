@@ -1,3 +1,14 @@
+'''
+This script include User Management
+
+-----> features <----
+- user registration
+- user login
+- user search
+
+'''
+
+
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
@@ -7,10 +18,17 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
+
 
 #  serializers 
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, UserSerializer
+
+# models
+from .models import User
 # Create your views here.
+
 
 
 
@@ -88,3 +106,32 @@ class LoginView(APIView):
             print(e)
             return Response({'message': "An error occurred. Please try again later."}, 
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class UserSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        query = request.GET.get('q', "")
+        page_number = request.query_params.get('page', 1)
+        if query:
+            users = User.objects.filter(
+                Q(username__icontains=query) | Q(email__iexact=query)
+            )
+
+            paginator = Paginator(users, 10)  # 10 items per page
+            try:
+                users_paginated = paginator.page(page_number)
+            except PageNotAnInteger:
+                users_paginated = paginator.page(1)
+            except EmptyPage:
+                users_paginated = paginator.page(paginator.num_pages)
+
+            serializer = UserSerializer(users_paginated, many=True)
+            return Response(serializer.data,
+                             status=status.HTTP_200_OK)
+
+        return Response({'error': 'Query parameter is missing'},
+                         status=status.HTTP_400_BAD_REQUEST)
