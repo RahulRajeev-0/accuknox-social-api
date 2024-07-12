@@ -46,3 +46,5 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 "password":'Password is not valid'
             })
+        
+    

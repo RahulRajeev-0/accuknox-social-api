@@ -5,14 +5,19 @@ from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 
 #  serializers 
 from .serializers import RegisterSerializer
 # Create your views here.
 
 
+
+# user sign up view or register view
 class RegisterView(APIView):
 
+    '''User sign up view creates new user '''
     def post(self, request):
         try:
             serializer = RegisterSerializer(data=request.data)
@@ -30,7 +35,8 @@ class RegisterView(APIView):
                             error_messages.append(f"{field.capitalize()}: {error}")
                 
                 content = {"message": error_messages}
-                return Response(content, status=status.HTTP_406_NOT_ACCEPTABLE)
+                return Response(content, 
+                                status=status.HTTP_406_NOT_ACCEPTABLE)
 
         except Exception as e:
             print('working')
@@ -40,3 +46,45 @@ class RegisterView(APIView):
             print(e)
             return Response({'message': 'Something went wrong'},
                              status=status.HTTP_400_BAD_REQUEST)
+
+
+
+#  user login view 
+class LoginView(APIView):
+    """
+    Handles user login and returns JWT tokens upon successful authentication.
+    """
+
+    def post(self, request):
+        try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+
+            if email is None or password is None:
+                return Response({'message':"Please provide both email and password"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            user = authenticate(request, email=email, password=password)
+
+            if user is not None:
+                # check the user is blocked or not
+                if not user.is_active:  
+                    return Response({"message":"You account is blocked"}, 
+                                    status=status.HTTP_403_FORBIDDEN)
+                
+                refresh = RefreshToken.for_user(user) # generating new refresh token for the user
+                refresh["username"] = str(user.username) # custom cliam in the acess token
+                
+                content = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
+                    }
+
+                return Response(content,status=status.HTTP_200_OK)
+            else:
+                return Response({'message':"Invalid credentials"},
+                                 status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            print(e)
+            return Response({'message': "An error occurred. Please try again later."}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
