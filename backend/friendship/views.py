@@ -22,13 +22,21 @@ class SendFriendRequest(APIView):
         except:
             return Response({"message":"User not exists"},
                              status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if a pending friend request already exists
+        if FriendRequest.has_pending_request(sender=request.user, receiver=receiver): 
+            return Response({"message":"There is already a pending friend request to this user"},
+                            status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if the sender can send a new request
         if FriendRequest.can_send_request(request.user):
             FriendRequest.objects.create(sender=request.user, receiver=receiver)
             return Response ({"message":"Friend request sent."},
-                              status=status.HTTP_201_CREATED)
+                            status=status.HTTP_201_CREATED) 
         else:
-            return Response({"message":"You have sent too many friend requests, Please wait a while before sending more"},
-                            status=status.HTTP_429_TOO_MANY_REQUESTS)
+            return Response({
+            "message":"You have sent too many friend requests, Please wait a while before sending more"
+            },status=status.HTTP_429_TOO_MANY_REQUESTS)
 
 
 # for accepting friends request 
