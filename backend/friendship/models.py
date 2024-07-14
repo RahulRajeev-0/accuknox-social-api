@@ -22,18 +22,32 @@ class FriendRequest(models.Model):
     status = models.CharField(max_length=50, choices=REQUEST_STATUS_CHOICES, default='pending')
 
     class Meta:
-        unique_together = ('sender', 'receiver')
         indexes = [
             models.Index(fields=[
                 'created_at'
             ])
         ]
 
+
+    # check if the user made more than 3 request within a minute
     @staticmethod
     def can_send_request(user):
         one_minute_ago = timezone.now() - timedelta(minutes=1)
         request_count = FriendRequest.objects.filter(sender=user, created_at__gte=one_minute_ago).count()
         return request_count < 3 
+    
+
+    '''
+    check if the user1(sender) had already send a friend request to the user2(receiver) 
+    and the current state is pending , in that case no need to send another request
+    '''
+    @staticmethod
+    def has_pending_request(sender, receiver):
+        return FriendRequest.objects.filter(
+            sender=sender,
+            receiver=receiver,
+            status='pending'
+        ).exists()
 
     
     def __str__(self):
