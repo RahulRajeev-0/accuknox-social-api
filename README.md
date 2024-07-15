@@ -57,7 +57,7 @@ docker-compose up --build
 
 ```
 #### Apply Migrations
-Open a new terminal window/tab and apply database migrations to set up the database schema:
+Open a new terminal window/tab move into backend and apply database migrations to set up the database schema:
 ```
 docker-compose exec web python manage.py makemigrations
 
