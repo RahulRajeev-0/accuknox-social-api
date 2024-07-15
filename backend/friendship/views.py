@@ -7,6 +7,9 @@ from rest_framework.permissions import IsAuthenticated
 from accounts.models import User
 from .models import Friendship, FriendRequest
 
+# serializers
+from .serializers import FriendRequestSerializer
+
 # Create your views here.
 
 
@@ -43,7 +46,7 @@ class SendFriendRequest(APIView):
 class AcceptFriendRequest(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request):
+    def post(self, request):
         try:
             request_id = request.data.get('request_id')
             friend_request = FriendRequest.objects.get(id=request_id, receiver=request.user)
@@ -77,6 +80,21 @@ class RejectFriendRequest(APIView):
 
 
 # lists of pending friends request 
+class PendingFriendsRequest(APIView):
+    """
+    View to list all pending friend requests for the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        try:
+            pending_request = FriendRequest.objects.filter(receiver=request.user, status='pending')
+            serializer = FriendRequestSerializer(pending_request, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'message': str(e)}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
 
 # lists of friends of a user 
 
