@@ -9,7 +9,7 @@ from .models import Friendship, FriendRequest
 
 # serializers
 from .serializers import FriendRequestSerializer
-
+from accounts.serializers import UserSerializer
 # Create your views here.
 
 
@@ -31,7 +31,6 @@ class SendFriendRequest(APIView):
             return Response ({'message':"You are already friends"}, 
                              status=status.HTTP_400_BAD_REQUEST)
         
-
         # Check if a pending friend request already exists
         if FriendRequest.has_pending_request(sender=request.user, receiver=receiver): 
             return Response({"message":"There is already a pending friend request to this user"},
@@ -93,6 +92,7 @@ class RejectFriendRequest(APIView):
         if friend_request.status == "accepted":
             return Response({"message":"You already accepted the request"},
                             status=status.HTTP_400_BAD_REQUEST)
+        
         elif friend_request.status == 'rejected': # if the request was rejected before
             return Response({"message":"You already declined the request"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -114,7 +114,8 @@ class PendingFriendsRequest(APIView):
         try:
             pending_request = FriendRequest.objects.filter(receiver=request.user, status='pending')
             serializer = FriendRequestSerializer(pending_request, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data, 
+                            status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'message': str(e)}, 
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -122,5 +123,23 @@ class PendingFriendsRequest(APIView):
 
 
 # lists of friends of a user 
+class UserFriendList(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            user = request.user
+            friendships_as_user1 = Friendship.objects.filter(user1=user).values_list('user2', flat=True)
+            friendships_as_user2 = Friendship.objects.filter(user2=user).values_list('user1', flat=True)
+            friend_ids = list(friendships_as_user1) + list(friendships_as_user2)
+            friends = User.objects.filter(id__in=friend_ids)
+            serializer = UserSerializer(friends, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'message': str(e)}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 
 
