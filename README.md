@@ -46,7 +46,10 @@ Important:
 
 ```bash
 git clone https://github.com/RahulRajeev-0/accuknox-social-api.git
-cd accuknox-social-api/backend
+cd accuknox-social-api/
+```
+```
+cd backend
 ```
 #### Build and start the Docker containers
 ```
