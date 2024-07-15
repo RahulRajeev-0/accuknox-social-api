@@ -72,7 +72,9 @@ To access the Django admin interface:
 1. Open your web browser and go to http://localhost:8000/admin.
 2. Log in with the superuser credentials.
 
-
+## API Collection 
+To help you get started with testing the API endpoints, I've prepared a Postman collection. 
+https://documenter.getpostman.com/view/31743247/2sA3kPqQPy
 
 
 
