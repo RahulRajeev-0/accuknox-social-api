@@ -29,11 +29,14 @@ class FriendRequest(models.Model):
         ]
 
 
-    # check if the user made more than 3 request within a minute
+    ''' 
+    check if the user made more than 3 request within a minute
+    
+    ''' 
     @staticmethod
-    def can_send_request(user):
+    def can_send_request(sender):
         one_minute_ago = timezone.now() - timedelta(minutes=1)
-        request_count = FriendRequest.objects.filter(sender=user, created_at__gte=one_minute_ago).count()
+        request_count = FriendRequest.objects.filter(sender=sender, created_at__gte=one_minute_ago).count()
         return request_count < 3 
     
 

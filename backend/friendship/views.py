@@ -2,7 +2,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-
+from django.db.models import Q
 # models 
 from accounts.models import User
 from .models import Friendship, FriendRequest
@@ -26,12 +26,18 @@ class SendFriendRequest(APIView):
             return Response({"message":"User not exists"},
                              status=status.HTTP_400_BAD_REQUEST)
         
+        # check if the both are already friends
+        if Friendship.objects.filter(Q(user1=request.user, user2=receiver) | Q(user1=receiver, user2=request.user)).exists():
+            return Response ({'message':"You are already friends"}, 
+                             status=status.HTTP_400_BAD_REQUEST)
+        
+
         # Check if a pending friend request already exists
         if FriendRequest.has_pending_request(sender=request.user, receiver=receiver): 
             return Response({"message":"There is already a pending friend request to this user"},
                             status=status.HTTP_403_FORBIDDEN)
         
-        # Check if the sender can send a new request
+        # Check if the sender can send a new request (3 request per minutes contrain )
         if FriendRequest.can_send_request(request.user):
             FriendRequest.objects.create(sender=request.user, receiver=receiver)
             return Response ({"message":"Friend request sent."},
@@ -53,6 +59,17 @@ class AcceptFriendRequest(APIView):
         except:
             return Response({"message":"Friend request not found"}, 
                             status=status.HTTP_404_NOT_FOUND)
+        
+        # check if the request is already accepted
+        if friend_request.status == "accepted":
+            return Response({"message":"This request already accepted"}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        # check if the both are already friends
+        if Friendship.objects.filter(Q(user1=friend_request.sender, user2=friend_request.receiver) | Q(user1=friend_request.receiver, user2=friend_request.sender)).exists():
+            return Response ({'message':"You are already friends"}, 
+                             status=status.HTTP_400_BAD_REQUEST)
+        
         friend_request.status = "accepted"
         friend_request.save()
         Friendship.objects.create(user1=friend_request.sender, user2=friend_request.receiver)
@@ -64,19 +81,27 @@ class AcceptFriendRequest(APIView):
 class RejectFriendRequest(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request):
+    def patch(self, request):
         try:
             request_id = request.data.get('request_id')
             friend_request = FriendRequest.objects.get(id=request_id, receiver=request.user)
         except:
             return Response({"message":"Friend request not found"}, 
                             status=status.HTTP_404_NOT_FOUND)
-        friend_request.status = "rejected"
-        friend_request.save()
-        return Response({"message":"Friend request rejected"},
-                         status=status.HTTP_200_OK)
-    
         
+        # if the request was already accepted 
+        if friend_request.status == "accepted":
+            return Response({"message":"You already accepted the request"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        elif friend_request.status == 'rejected': # if the request was rejected before
+            return Response({"message":"You already declined the request"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        else:
+            friend_request.status = "rejected"
+            friend_request.save()
+            return Response({"message":"Friend request rejected"},
+                            status=status.HTTP_200_OK)
+
 
 
 # lists of pending friends request 
